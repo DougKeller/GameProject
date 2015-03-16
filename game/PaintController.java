@@ -1,6 +1,7 @@
 package game;
 import game.entities.Entity;
 import game.interfaces.Updateable;
+import game.utilities.Keyboard;
 
 import java.awt.Canvas;
 import java.awt.Color;
@@ -98,6 +99,7 @@ public class PaintController extends Canvas implements KeyListener {
 			
 			g2d.setColor(Color.GREEN);
 			g2d.drawString(String.format("fps %s", fps), 20, 20);
+			g2d.drawString("Score: " + window.getScore(), 20, 40);
 			
 			buffer.getDrawGraphics().drawImage(bufferedImage, 0, 0, null);
 			
@@ -118,11 +120,17 @@ public class PaintController extends Canvas implements KeyListener {
 
 	@Override
 	public void keyPressed(KeyEvent e) {
+		if(e.getKeyCode() == KeyEvent.VK_ESCAPE)
+			window.setVisible(false);
+		if(e.getKeyCode() == KeyEvent.VK_ENTER)
+			window.pause(true);
 		window.getEntityController().addEvent(KeyEvent.KEY_PRESSED, e);
 	}
 
 	@Override
 	public void keyReleased(KeyEvent e) {
+		if(e.getKeyCode() == KeyEvent.VK_ENTER)
+			window.pause(false);
 		window.getEntityController().addEvent(KeyEvent.KEY_RELEASED, e);
 	}
 

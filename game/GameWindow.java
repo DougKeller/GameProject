@@ -6,14 +6,17 @@ import javax.swing.JFrame;
 public class GameWindow extends JFrame {
 	
 	private static final long serialVersionUID = 1L;
-	private static final long TICK_LENGTH = 15;
+	
+	private int score;
 	
 	private long startTimeMillis;
 	private long timePassed;
-	
+
+	private boolean paused;
 	
 	public static final String TITLE = "Douglas Keller";
 	
+	Environment environment;
 	EntityController entityController;
 	PaintController paintController;
 	
@@ -27,12 +30,16 @@ public class GameWindow extends JFrame {
 		setTitle(TITLE);
 		setIgnoreRepaint(true);
 		
-		entityController = new EntityController(this);
+		environment = new Environment
+				(this, "C:\\Users\\Douglas\\Documents\\eclipse\\workspace\\Game\\src\\level.svw");
+		entityController = environment.getEntityController();
 		paintController = new PaintController(this);
 		
 		setLocationRelativeTo(null);
 		
 		timePassed = 0;
+		score = 0;
+		paused = false;
 	}
 	
 	public void run() {
@@ -44,13 +51,14 @@ public class GameWindow extends JFrame {
 		long timeBegin, timeElapsed = 0;
 		
 		while(isVisible()) {
-			timeBegin = runTimeMillis();
-			
-			entityController.update(timeElapsed);
-			
-			paintController.update();
-			
-			timeElapsed = runTimeMillis() - timeBegin;
+				timeBegin = runTimeMillis();
+				
+				if(!paused)
+					entityController.update(timeElapsed);
+				
+				paintController.update();
+				
+				timeElapsed = runTimeMillis() - timeBegin;
 		}
 	}
 	
@@ -58,13 +66,20 @@ public class GameWindow extends JFrame {
 		return System.currentTimeMillis() - startTimeMillis;
 	}
 	
+	public void pause(boolean b){
+		paused = b;
+	}
+	
 	public EntityController getEntityController() {
 		return entityController;
 	}
 	
-	public static void main(String[] args) {
-		GameWindow window = new GameWindow();
-		window.run();
+	public void incrementScore() {
+		score++;
+	}
+	
+	public int getScore() {
+		return score;
 	}
 	
 	public long deltaTime() {

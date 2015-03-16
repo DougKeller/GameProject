@@ -2,27 +2,23 @@ package game;
 
 import java.awt.event.KeyEvent;
 import java.util.ArrayList;
+import java.util.Comparator;
 
-import game.entities.Circle;
 import game.entities.Entity;
-import game.entities.Player;
 import game.interfaces.Controllable;
 
 
 public class EntityController {
 	
-	private GameWindow gamewindow;
+	private Environment environment;
 	
 	private ArrayList<Entity> entities;
 	private ArrayList<Controllable> players;
 	
-	public EntityController(GameWindow w) {
-		gamewindow = w;
+	public EntityController(Environment env) {
+		environment = env;
 		entities = new ArrayList<Entity>();
 		players = new ArrayList<Controllable>();
-		
-		createEntity(new Player(400, 300));
-		createEntity(new Circle(400,300));
 	}
 
 	public void update(long elapsed) {
@@ -40,7 +36,7 @@ public class EntityController {
 						destroyEntity(b);
 						j--;
 					} else
-						Entity.checkCollision(a, entities.get(j));
+						Entity.testCollision(a, entities.get(j));
 				}
 				a.update(seconds);
 			}
@@ -68,14 +64,36 @@ public class EntityController {
 	}
 	
 	public void createEntity(Entity e) {
+		e.setController(this);
+		
 		entities.add(e);
 		if(e instanceof Controllable)
 			players.add((Controllable)e);
+		
+		sortEntities();
+		
 	}
 	
 	public void destroyEntity(Entity e) {
 		entities.remove(e);
 		if(e instanceof Controllable)
 			players.remove(e);
+		
+		sortEntities();
+	}
+	
+	public void sortEntities() {
+		Comparator<Entity> c = new Comparator<Entity>() {
+			@Override
+			public int compare(Entity o1, Entity o2) {
+				return o2.depth() - o1.depth();
+			}
+		};
+		
+		entities.sort(c);
+	}
+	
+	public Environment getEnvironment() {
+		return environment;
 	}
 }
