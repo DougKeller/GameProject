@@ -1,10 +1,12 @@
 package game;
+import game.entities.ConcreteEntity;
 import game.entities.Entity;
-import game.interfaces.Updateable;
+import game.utilities.Time;
 import game.utilities.Keyboard;
 
 import java.awt.Canvas;
 import java.awt.Color;
+import java.awt.Dimension;
 import java.awt.Graphics2D;
 import java.awt.GraphicsConfiguration;
 import java.awt.GraphicsDevice;
@@ -14,42 +16,30 @@ import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
 import java.awt.image.BufferStrategy;
 import java.awt.image.BufferedImage;
-import java.util.ArrayList;
 
 
-public class PaintController extends Canvas implements KeyListener {
+public class PaintController extends Canvas {
 	private static final long serialVersionUID = 1L;
-	
-	private GameWindow window;
 	
 	private BufferStrategy buffer;
 	private BufferedImage bufferedImage;
 	private Graphics2D g2d;
-	private ArrayList<Entity> entities;
 	
-	public static final int WIDTH = 800;
-	public static final int HEIGHT = 600;
+	
+	public static int score;
 	
 	private int frames;
 	private int fps;
-	private long currentTime;
-	private long lastTime;
 	private long totalTime;
 	
-	public PaintController(GameWindow w) {
-		window = w;
-		
+	public PaintController() {
 		setIgnoreRepaint(true);
-		setSize(WIDTH, HEIGHT);
-		
-		window.add(this);
-		window.pack();
+		setSize(300, 400);
+		setPreferredSize(new Dimension(300, 400));
 	}
 	
 	public void initializeValues() {
 		g2d = null;
-		
-		addKeyListener(this);
 		
 		createBufferStrategy(2);
 		buffer = getBufferStrategy();
@@ -60,18 +50,13 @@ public class PaintController extends Canvas implements KeyListener {
 	    GraphicsDevice gd = ge.getDefaultScreenDevice();
 	    GraphicsConfiguration gc = gd.getDefaultConfiguration();
 	    
-	    bufferedImage = gc.createCompatibleImage(WIDTH, HEIGHT);
-		
-		loadEntities();
+	    bufferedImage = gc.createCompatibleImage(300, 400);
 		
 		frames = 0;
-		currentTime = lastTime = window.runTimeMillis();
 	}
 
 	public void update() {
-		lastTime = currentTime;
-		currentTime = window.runTimeMillis();
-		totalTime += currentTime - lastTime;
+		totalTime += Time.LOOP_DURATION();
 		
 		if(totalTime > 1000) {
 			totalTime -= 1000;
@@ -79,11 +64,11 @@ public class PaintController extends Canvas implements KeyListener {
 			frames = 0;
 		}
 		
-		loadEntities();
-		
 		try {
-			
+			Game.camera.update();
 			g2d = bufferedImage.createGraphics();
+
+			g2d.translate(-Game.camera.x, -Game.camera.y);
 			
 		    RenderingHints rh = new RenderingHints(
 		             RenderingHints.KEY_ANTIALIASING,
@@ -91,15 +76,20 @@ public class PaintController extends Canvas implements KeyListener {
 		    g2d.setRenderingHints(rh);
 		    
 			g2d.setColor(Color.BLACK);
-			g2d.fillRect(0, 0, WIDTH, HEIGHT);
+			g2d.fillRect(0, 0, Environment.WIDTH, Environment.HEIGHT);
 			
-			for(Entity e : entities) {
-				e.repaint(g2d);
+			for(Entity e : Entity.entities) {
+				if(e.visible() && e instanceof ConcreteEntity)
+				((ConcreteEntity)e).repaint(g2d);
 			}
 			
+			g2d.setColor(Color.WHITE);
+			g2d.drawString("" + Time.RUNTIME()/1000, Game.camera.x + 20, Game.camera.y + 20);
+			
 			g2d.setColor(Color.GREEN);
-			g2d.drawString(String.format("fps %s", fps), 20, 20);
-			g2d.drawString("Score: " + window.getScore(), 20, 40);
+			g2d.drawString(String.format("fps %s", fps), Game.camera.x + 20, Game.camera.y + 50);
+			g2d.drawString(String.format("score: %s", score), Game.camera.x + 20, Game.camera.y + 80);
+			g2d.drawString(String.format("ticks: %s", Time.TICKS()), Game.camera.x + 20, Game.camera.y + 110);
 			
 			buffer.getDrawGraphics().drawImage(bufferedImage, 0, 0, null);
 			
@@ -112,30 +102,5 @@ public class PaintController extends Canvas implements KeyListener {
 		}
 		
 		frames++;
-	}
-	
-	public void loadEntities() {
-		entities = window.getEntityController().getEntities();
-	}
-
-	@Override
-	public void keyPressed(KeyEvent e) {
-		if(e.getKeyCode() == KeyEvent.VK_ESCAPE)
-			window.setVisible(false);
-		if(e.getKeyCode() == KeyEvent.VK_ENTER)
-			window.pause(true);
-		window.getEntityController().addEvent(KeyEvent.KEY_PRESSED, e);
-	}
-
-	@Override
-	public void keyReleased(KeyEvent e) {
-		if(e.getKeyCode() == KeyEvent.VK_ENTER)
-			window.pause(false);
-		window.getEntityController().addEvent(KeyEvent.KEY_RELEASED, e);
-	}
-
-	@Override
-	public void keyTyped(KeyEvent e) {
-		window.getEntityController().addEvent(KeyEvent.KEY_TYPED, e);
 	}
 }

@@ -1,47 +1,45 @@
 package game.entities;
 
-import game.calculations.Collision;
+import game.Environment;
+import game.PaintController;
+import game.utilities.Location;
 
-import java.util.Random;
 import java.awt.Color;
+import java.awt.Dimension;
 import java.awt.Graphics2D;
+import java.util.Random;
 
-public class Ball extends Entity {
+public class Ball extends ConcreteEntity {
 	
 	Color color;
-	Random r;
 	
-	double rpm;
-	int velocity;
-	
-	public Ball(int a, int b) {
-		super(a, b);
-		r = new Random();
-		rpm = r.nextDouble() * 2;
-		velocity = r.nextInt(150) + 50;
-		color = new Color(r.nextInt(128)+128, r.nextInt(128)+128, r.nextInt(128)+128);
+	public Ball(double x, double y) {
+		this(new Location(x, y));
+	}
+	public Ball(Location p) {
+		super((Location) p.clone(), new Dimension(10, 10), 0, true);
+		Random r = new Random();
+		color = new Color(r.nextInt(128) + 128, r.nextInt(128) + 128, r.nextInt(128) + 128);
 	}
 
 	@Override
-	public void update(double elapsed) {
-		rotate(rpm * Math.PI * elapsed);
-		move(theta, 300, elapsed);
+	public void handleCollision(Entity e) {
+			Random r = new Random();
+			loc = new Location(r.nextInt(Environment.WIDTH/10)*10 + 5, r.nextInt(Environment.HEIGHT/10)*10 + 5);
+			PaintController.score++;
+
 	}
-	
+
 	@Override
-	public void destroy() {
-		destroyed = true;
-		entityController.getEnvironment().getGameWindow().incrementScore();
+	public void tick() {
+		rotate(2*Math.PI);
+		//size.width = (int)(Math.sin(theta)*10) + 10;
+		//size.height = (int)(Math.sin(-theta)*10s) + 10;
 	}
 
 	@Override
 	public void repaint(Graphics2D g) {
 		g.setColor(color);
-		g.drawOval(leftInt(), topInt(), widthInt(), widthInt());
+		g.drawOval(left(), top(), size.width, size.height);
 	}
-
-	@Override
-	public void handleCollision(Entity e, Collision c) {
-	}
-
 }

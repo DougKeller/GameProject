@@ -1,148 +1,126 @@
 package game.entities;
 
-import java.awt.Graphics2D;
+import game.Game;
+import game.utilities.Time;
+import game.utilities.Location;
+
+import java.awt.Dimension;
+import java.awt.Point;
 import java.awt.Rectangle;
-import java.awt.image.BufferedImage;
-import java.io.File;
-import java.io.IOException;
+import java.util.ArrayList;
 
-import javax.imageio.ImageIO;
-
-import game.EntityController;
-import game.calculations.Collision;
-import game.calculations.Constants;
-import game.interfaces.Updateable;
-
-public abstract class Entity implements Updateable {
-	protected double x;
-	protected double y;
+public abstract class Entity {
+	// *** Private member declarations *** //
+	private long timeCreated;
+	
+	// *** Member declarations *** //
+	protected Location loc;
+	protected Dimension size;
 	protected double theta;
 	
-	protected double width;
-	protected double height;
-	protected int depth = 10;
+	protected boolean solid;
+	protected boolean dead;
 	
-	protected boolean destroyed;
-	protected boolean dying;
-	
-	protected EntityController entityController;
-	
-	protected BufferedImage texture;
-	
-	public Entity(int a, int b) {
-		x = a;
-		y = b;
-		width = 10;
-		height = 10;
-		destroyed = false;
+	// *** Constructors *** //
+	public Entity(Location p, Dimension d, double t,boolean s) {
+		timeCreated = Time.RUNTIME();
+		loc = p;
+		size = d;
+		theta = t;
+		solid = s;
+		dead = false;
+		entities.add(this);
 	}
-
-	/// Abstract methods
-	public abstract void repaint(Graphics2D g);
-	public abstract void handleCollision(Entity e, Collision c);
 	
+	// *** Abstract functions *** //
+	public abstract void handleCollision(Entity e);
+	public abstract void tick();
 	
-	public double left() 	 { return x;  }
-	public double right()  { return x + width;  }
-	public double top() 	 { return y; }
-	public double bottom() { return y + height; }
-	public double centerX() { return x + width / 2; }
-	public double centerY() { return y + height / 2; }
-	public int leftInt() 	{ return (int)left();   }
-	public int rightInt() 	{ return (int)right();  }
-	public int topInt() 	{ return (int)top();    }
-	public int bottomInt() 	{ return (int)bottom(); }
-	public int centerXInt() { return (int)centerX(); }
-	public int centerYInt() { return (int)centerY(); }
+	// *** Getters *** //
+	public Location location() 	{ return (Location)loc.clone(); 			}
+	public Dimension size() 	{ return (Dimension)size.clone();  			}
+	public int width() 			{ return size.width; 						}
+	public int height() 		{ return size.height;				 		}
+	public double theta() 		{ return theta; 							}
+	public long age() 			{ return Time.RUNTIME() - timeCreated; }
+	public boolean solid() 		{ return solid; 							}
 	
-	/// Size accessors
-	public double widthDouble()  { return width;  }
-	public double heightDouble() { return height; }
-	public int depth() { return depth; }
-	public int widthInt()	{ return (int)widthDouble();  }
-	public int heightInt()	{ return (int)heightDouble(); }
-	public EntityController getController() { return entityController; }
+	// *** Side-getters *** //
+	public int left()   { return loc.x() - size.width / 2;  }
+	public int right()  { return loc.x() + size.width / 2;  }
+	public int top()    { return loc.y() - size.height / 2; }
+	public int bottom() { return loc.y() + size.height / 2; }
 	
-	/// Tests
+	// The origin is the top-left corner of the bounds, used in painting
+	public Point origin() { return new Point(left(), top()); }
+	
+	// *** Setters *** //
+	public void setLocation(double x, double y) { loc.x = x; loc.y = y; }
+	public void setLocation(Location l)	{ loc = l;   }
+	public void setSize(int w, int h) 	{ size.width = w; size.height = h; }
+	public void setSize(Dimension d) 	{ size = d;  }
+	public void setTheta(double t) 		{ theta = t; }
+	public void setSolid(boolean s) 	{ solid = s; }
+	
+	// *** Side-Setters *** //
+	// Useful for collisions, etc
+	public void setLeft(int x)   { loc.x += (x - left());   }
+	public void setRight(int x)  { loc.x -= (x - right());  }
+	public void setTop(int y)    { loc.y += (y - top());    }
+	public void setBottom(int y) { loc.y -= (y - bottom()); }
+	
+	// *** Relative Movement *** //
+	public void move(double amt) { 
+		move(new Location(amt * Math.cos(theta), amt * Math.sin(theta)));
+	}
+	public void move(Location l) { 
+		loc.x += l.x; 
+		loc.y += l.y;
+	}
+	public void rotate(double t) {
+		theta += t;
+		while(theta > Math.PI)
+			theta -= 2*Math.PI;
+		while(theta < -Math.PI)
+			theta += 2*Math.PI;
+	}
+	
+	// *** Member functions *** //
+	public Rectangle bounds() {
+		return new Rectangle(origin(), size);
+	}
 	public boolean collidesWith(Entity e) {
-		if(e.destroyed)
+		if(destroyed())
 			return false;
-		return getBounds().intersects(e.getBounds());
+		return bounds().intersects(e.bounds());
+	}
+	public boolean visible() {
+		return Game.camera.intersects(bounds());
 	}
 	public boolean destroyed() {
-		return destroyed;
+		return removed.contains(this);
 	}
-	
-	/// Setters
-	public void setTexture(String filename) {
-		try {
-			texture = ImageIO.read(new File(filename));
-		} catch(IOException e) {
-			System.out.println("Unable to load image: " + filename);
-		}
-	}
-	public void setPosition(double a, double b) {
-		x = a;
-		y = b;
-	}
-	public void setCenter(double a, double b) {
-		x = a - width/2;
-		y = b - height/2;
-	}
-	public void setController(EntityController c) {
-		entityController = c;
-	}
-	
-	public void move(double theta, double velocity, double elapsed) {
-		y += Math.sin(theta) * velocity * elapsed;
-		x += Math.cos(theta) * velocity * elapsed;
-	}
-	public void rotate(double a) {
-		theta += a;
-		if(theta > 2*Constants.PI)
-				theta -= 2*Constants.PI;
-		if(theta < 0)
-			theta += 2*Constants.PI;
+	public boolean alive() {
+		return !destroyed();
 	}
 	public void destroy() {
-		destroyed = true;
+		removed.add(this);
+	}
+	public void remove() {
+		entities.remove(this);
+		removed.remove(this);
 	}
 	
-	public BufferedImage getImage() {
-
-		BufferedImage bi = new BufferedImage(widthInt(), heightInt(), texture.getType());
-		Graphics2D g = bi.createGraphics();
-		g.rotate(theta, width/2, height/2);
-		g.drawImage(texture, null, 0, 0);
-		return bi;
-	}
-	
-	public Rectangle getBounds() {
-		return new Rectangle(leftInt(), topInt(), widthInt(), heightInt());
-	}
-	
+	// *** Class functions *** //
 	public static void testCollision(Entity a, Entity b) {
-		if(!a.collidesWith(b))
-			return;
-		
-		Rectangle intersection = a.getBounds().intersection(b.getBounds());
-		
-		if(intersection.width > intersection.height) {
-			if(intersection.getCenterY() < a.getBounds().getCenterY()){
-				a.handleCollision(b, Collision.ABOVE);
-				b.handleCollision(a, Collision.BELOW);
-			} else {
-				a.handleCollision(b, Collision.BELOW);
-				b.handleCollision(a, Collision.ABOVE);
-			}
-		} else {
-			if(intersection.getCenterX() < a.getBounds().getCenterX()) {
-				a.handleCollision(b, Collision.LEFT);
-				b.handleCollision(a, Collision.RIGHT);
-			} else {
-				a.handleCollision(b, Collision.RIGHT);
-				b.handleCollision(a, Collision.LEFT);
-			}
+		if(a.alive() && b.alive() && a.collidesWith(b)) {
+			a.handleCollision(b);
+			b.handleCollision(a);
+			// TODO: Face detection
 		}
 	}
+
+	// *** Class variables *** //
+	public static ArrayList<Entity> entities = new ArrayList<Entity>();
+	public static ArrayList<Entity> removed = new ArrayList<Entity>();
 }

@@ -1,42 +1,41 @@
 package game.entities;
 
-import game.calculations.Collision;
+import game.utilities.Location;
 
 import java.awt.Color;
+import java.awt.Dimension;
 import java.awt.Graphics2D;
 
-public class Bullet extends Entity {
-	
-	private double velocity = 300;
-	
-	private long created;
+public class Bullet extends ConcreteEntity {
 
-	public Bullet(int a, int b, double th) {
-		super(a, b);
-		
-		created = System.currentTimeMillis();
-		theta = th;
-		width = height = 5;
+	public Bullet(double x, double y, double t) {
+		this(new Location(x, y), t);
 	}
-
-	@Override
-	public void update(double elapsed) {
-		if(System.currentTimeMillis() - created > 3000)
-			destroy();
-		
-		move(theta, velocity, elapsed);
+	public Bullet(Location p, double t) {
+		super(p, new Dimension(5, 5), t, false);
+	}
+	public Bullet(Entity source) {
+		super(source.location(), new Dimension(5,5), source.theta(), false);
 	}
 
 	@Override
 	public void repaint(Graphics2D g) {
-		g.setColor(Color.white);
-		g.drawOval(leftInt(), topInt(), widthInt(), heightInt());
+		float alpha = (3000-age())/4500f;
+		if(alpha < 0)
+			alpha = 0;
+		g.setColor(new Color(1f,1f,1f,alpha));
+		g.fillOval(left(), top(), width(), height());
 	}
 
 	@Override
-	public void handleCollision(Entity e, Collision c) {
-		if(e instanceof Ball)
-			e.destroy();
+	public void handleCollision(Entity e) {
+	}
+
+	@Override
+	public void tick() {
+		if(age() > 2000)
+			destroy();
+		move(6);
 	}
 
 }
